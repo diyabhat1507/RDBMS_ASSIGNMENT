@@ -1,0 +1,107 @@
+import tkinter as tk
+from tkinter import messagebox import sqlite3
+
+# Function to connect to the Company database def connect_to_database():
+conn = sqlite3.connect('company.db') c = conn.cursor()
+return conn, c
+
+# Function to create the Department table if not exists def create_department_table():
+conn, c = connect_to_database()
+c.execute('''CREATE TABLE IF NOT EXISTS Department ( id INTEGER PRIMARY KEY,
+name TEXT)''') conn.commit() conn.close()
+
+# Function to create the Employee table if not exists def create_employee_table():
+conn, c = connect_to_database()
+c.execute('''CREATE TABLE IF NOT EXISTS Employee ( id INTEGER PRIMARY KEY,
+name TEXT, department_id INTEGER,
+FOREIGN KEY (department_id) REFERENCES Department(id))''') conn.commit()
+conn.close()
+
+# Function to populate the Department table with sample data
+ def populate_department_table():
+conn, c = connect_to_database()
+c.execute("INSERT INTO Department (name) VALUES ('HR')") c.execute("INSERT INTO Department (name) VALUES ('Finance')") c.execute("INSERT INTO Department (name) VALUES ('IT')") conn.commit()
+conn.close()
+
+# Function to populate the Employee table with sample data def populate_employee_table():
+conn, c = connect_to_database()
+c.execute("INSERT INTO Employee (name, department_id) VALUES ('John Doe', 1)") c.execute("INSERT INTO Employee (name, department_id) VALUES ('Jane Smith', 2)") c.execute("INSERT INTO Employee (name, department_id) VALUES ('Mike Johnson', 3)") conn.commit()
+conn.close()
+
+# Function to load all data from the Employee table def load_employee_data():
+conn, c = connect_to_database()
+c.execute("SELECT Employee.id, Employee.name, Department.name FROM Employee INNER JOIN Department ON Employee.department_id = Department.id")
+rows = c.fetchall() conn.close() return rows
+
+# Function to add data to the Employee table def add_employee_data(name, department_id):
+conn, c = connect_to_database()
+c.execute("INSERT INTO Employee (name, department_id) VALUES (?, ?)", (name, department_id))
+conn.commit() conn.close()
+
+# Function to add department to the Department table def add_department_data(department_name):
+conn, c = connect_to_database()
+c.execute("INSERT INTO Department (name) VALUES (?)", (department_name,)) conn.commit()
+conn.close()
+
+# Function to delete data from the Employee table def delete_employee_data(id):
+conn, c = connect_to_database()
+c.execute("DELETE FROM Employee WHERE id=?", (id,)) conn.commit()
+conn.close()
+
+# Main tkinter window root = tk.Tk()
+root.title("Company Database App")
+
+# Create Department and Employee tables if not exists create_department_table()
+create_employee_table()
+
+# Populate Department and Employee tables with sample data
+
+populate_department_table() populate_employee_table()
+
+# Listbox to display employee data listbox_employee = tk.Listbox(root, width=50)
+listbox_employee.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+
+# Function to update the listbox with employee data def update_employee_listbox():
+listbox_employee.delete(0, tk.END) for row in load_employee_data():
+listbox_employee.insert(tk.END, row)
+
+# Update listbox with existing employee data update_employee_listbox()
+
+# Entry widgets for adding employee data entry_name = tk.Entry(root, width=30)
+entry_name.grid(row=1, column=0, padx=10, pady=5)
+
+entry_department_id = tk.Entry(root, width=10) entry_department_id.grid(row=1, column=1, padx=5, pady=5)
+
+# Entry widget for adding department data entry_department_name = tk.Entry(root, width=30)
+entry_department_name.grid(row=2, column=0, columnspan=2, padx=10, pady=5)
+
+# Function to handle the 'Add Employee' button click def add_employee_button_click():
+name = entry_name.get()
+department_id = entry_department_id.get() if name and department_id:
+add_employee_data(name, department_id) entry_name.delete(0, tk.END) entry_department_id.delete(0, tk.END) update_employee_listbox()
+else:
+messagebox.showwarning("Warning", "Please enter name and department ID.")
+
+# Function to handle the 'Add Department' button click def add_department_button_click():
+department_name = entry_department_name.get() if department_name:
+add_department_data(department_name) entry_department_name.delete(0, tk.END)
+update_employee_listbox() # Update listbox to reflect changes in department else:
+messagebox.showwarning("Warning", "Please enter a department name.")
+
+# Function to handle the 'Delete' button click def delete_button_click():
+try:
+selected_index = listbox_employee.curselection()[0] selected_id = listbox_employee.get(selected_index)[0] delete_employee_data(selected_id) update_employee_listbox()
+
+except IndexError:
+messagebox.showwarning("Warning", "Please select an item to delete.")
+
+# 'Add Employee' button
+add_employee_button = tk.Button(root, text="Add Employee", command=add_employee_button_click) add_employee_button.grid(row=3, column=0, padx=5, pady=5)
+
+# 'Add Department' button
+add_department_button = tk.Button(root, text="Add Department", command=add_department_button_click) add_department_button.grid(row=3, column=1, padx=5, pady=5)
+
+# 'Delete' button
+delete_button = tk.Button(root, text="Delete", command=delete_button_click) delete_button.grid(row=4, column=0, columnspan=2, padx=5, pady=5)
+
+root.mainloop()
